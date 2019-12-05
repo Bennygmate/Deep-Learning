@@ -5,14 +5,13 @@
 #include "network.h"
 
 int GL_IS_DEBUG; // 0: No, 1: Yes
-std::string relative_set_dir{ "../../../../cmu_facial/sets/" };
-std::string relative_face_dir{ "../../../../cmu_facial/faces/" };
+std::string relative_set_dir{ "facial/sets/" };
+std::string relative_face_dir{ "facial/faces/" };
 
-void printusage(std::string prog)
-{
+void printusage(std::string prog) {
     std::cout << "USAGE: " << prog << std::endl;
     std::cout << "       -n <network file>" << std::endl;
-	std::cout << "       [-f <network borrow>]" << std::endl;
+    std::cout << "       [-f <network borrow>]" << std::endl;
     std::cout << "       [-N <network structure>]" << std::endl;
     std::cout << "       [-S <save network epochs>]" << std::endl;
     std::cout << "       [-T]" << std::endl;
@@ -29,10 +28,8 @@ void printusage(std::string prog)
     std::cout << "       [-2 <train 3>]" << std::endl;
 }
 
-
 void print_fname_list(std::vector<std::string> fname_vect, std::string vect_name) {
     std::cout << vect_name << " (" << fname_vect.size() << " items):" << std::endl;
-
     size_t index;
     for (index = 0; index < fname_vect.size(); index++)    {
         std::cout << fname_vect[index] << std::endl;
@@ -45,16 +42,13 @@ int read_list_file(std::vector<std::string> & fname_vector, std::string fname) {
         std::cout << "read_list_file(): invalid filename: it is empty string";
         return count;
     }
-
     std::ifstream infile(fname);
-
     if (!infile)    {
         std::cout << "file not found, file name: " << fname << '\n';
         return count;
     }
-
     std::string line;
-    while (std::getline(infile, line))    {
+    while (std::getline(infile, line)) {
         fname_vector.push_back(relative_face_dir + line);
         count++;
     }
@@ -62,8 +56,7 @@ int read_list_file(std::vector<std::string> & fname_vector, std::string fname) {
 }
 
 std::vector<std::string> nw_name_vect;
-int convert_nw_name_to_int(std::string network_name)
-{
+int convert_nw_name_to_int(std::string network_name) {
     if (nw_name_vect.empty())    {
         nw_name_vect.push_back("face"); // user_id, index 0
         nw_name_vect.push_back("pose"); // pose, index 1
@@ -71,25 +64,20 @@ int convert_nw_name_to_int(std::string network_name)
         nw_name_vect.push_back("shades"); // => sunglasses, index 3
     }
     std::string tmp_str;
-    for (size_t idx = 0; idx < nw_name_vect.size(); idx++)    {
+    for (size_t idx = 0; idx < nw_name_vect.size(); idx++) {
         tmp_str = nw_name_vect[idx];
-        if (tmp_str.compare(0, network_name.length(), network_name) == 0)        {
+        if (tmp_str.compare(0, network_name.length(), network_name) == 0) {
             return idx; // match found, return index
         }
     }
-
-    // no match found:
-    return -1;
+    return -1; // no match found:
 }
 
 
 int main(int argc, const char* argv[]) {
     std::string nw_infile, nw_from_file, fname_train, fname_test1, fname_test2;
-
     int retval = -1;
     int GL_IS_DEBUG = 0;
-
-    /* FIXME: tweak the following according to specs 2.1.xx */
     lint argv_epochs = 100;
     lint list_errors = 0;
     bool test_only = false;
@@ -103,21 +91,18 @@ int main(int argc, const char* argv[]) {
     lint argv_nthreads = 4;
     lint argv_epoch_size = 10;
     std::string argv_network = "dnn";
-
-    if (argc < 2)    {
+    if (argc < 2)  {
         printusage(argv[0]);
         return -1;
     }
-
     std::string network_type = std::string{ argv[1] };
     std::vector<std::string> new_argvs;
     int new_argc = argc - 1;
     new_argvs.push_back(argv[0]);
-    for (lint i = 2; i < argc; ++i)    {
+    for (lint i = 2; i < argc; ++i) {
         new_argvs.push_back(std::string(argv[i]));
     }
-
-    if ("cnn" == network_type)    {
+    if ("cnn" == network_type) {
         run_cnn(new_argc, new_argvs);
         return 0;
     }
@@ -125,12 +110,10 @@ int main(int argc, const char* argv[]) {
         run_dnn(new_argc, new_argvs);
         return 0;
     }
-
     int ind;
     for (ind = 1; ind < argc; ind++)  {
         if (argv[ind][0] == '-') {
-            switch (argv[ind][1])
-            {
+            switch (argv[ind][1]) {
             case 'n': nw_infile.assign(argv[++ind]);
                 break;
             case 'f': nw_from_file.assign(argv[++ind]);
@@ -177,7 +160,6 @@ int main(int argc, const char* argv[]) {
     std::vector<std::string> train_list;
     std::vector<std::string> test1_list;
     std::vector<std::string> test2_list;
-
     if (fname_train.length() > 0)    {
         retval = read_list_file(train_list, relative_set_dir + fname_train);
     }
@@ -187,45 +169,34 @@ int main(int argc, const char* argv[]) {
     if (fname_test2.length() > 0)    {
         retval = read_list_file(test2_list, relative_set_dir + fname_test2);
     }
-
     std::cout << "after read: " << train_list.size() << std::endl;
-
     if (GL_IS_DEBUG == 1)    {
         print_fname_list(train_list, "train_list");
         print_fname_list(test1_list, "test1_list");
         print_fname_list(test2_list, "test2_list");
     }
 
-
-    /*** If we haven't specified a network save file, we should... ***/
+    /*** If we haven't specified a network save file ***/
     if (nw_infile.length() == 0)    {
-        std::cout << "facetrain: You might want to specify an output file, i.e., -n <network file>" << std::endl;
-        // exit(-1);
+        std::cout << "facetrain: Output file, i.e., -n <network file>" << std::endl;
     }
-
-    /*** Don't try to train if there's no training data ***/
-    if (fname_train.length() == 0)    {
-        argv_epochs = 0;
-    }
-
     int label_id = convert_nw_name_to_int(nw_infile);
-    if (label_id < 0)    {
+    if (label_id < 0)   {
         std::cout << "Network file name should be one of the follows: face, pose, express, shades.\n";
         return -1;
     }
-
     run_facial_network(
-        argv_hidtopgm, // false
+        argv_hidtopgm,
         test_only,
         argv_seed,
-        argv_batch_size,    //8,
-        argv_nthreads,      //4,
-        argv_epoch_size,    // 100,
+        argv_batch_size,    
+        argv_nthreads,    
+        argv_epoch_size,
         argv_epochs,
         n_epochs_between_save,
         label_id,
-        argv_learning_rate, // 0.001,
-        argv_momentum,      // 0.3,
+        argv_learning_rate, ,
+        argv_momentum, 
         argv_network,
         nw_infile,
         nw_from_file,
